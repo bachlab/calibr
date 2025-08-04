@@ -1,0 +1,24 @@
+Package: CalibR
+Title: Tools for Experimental Calibration
+Version: 0.0.0.9000
+Authors@R: 
+    person("Federico", "Mancinelli", , "f.mancinelli@uni-bonn.de", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-4606-5876"))
+Description: CalibR provides a suite of tools for experimental calibration in statistical analysis. 
+    It includes functions for computing statistics based on sample sizes, degrees of freedom, 
+    in complete and partial information cases. It also offers methods to combine calibration scores 
+    (in the form of Bayes Factors against a ground measure), facilitating robust and principled statistical inference. 
+    The package is based on the methodology presented in "Meta-Analysis of Bayes Factors" 
+    by Stavros Nikolakopoulos and Ioannis Ntzoufras.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Imports:
+    Rmpfr,
+    stats,
+    pwr
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Suggests: 
+    testthat (>= 3.0.0),
+    dplyr
+Config/testthat/edition: 3
