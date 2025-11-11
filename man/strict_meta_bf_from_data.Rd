@@ -2,7 +2,7 @@
 % Please edit documentation in R/strict_meta_bf_from_data.R
 \name{strict_meta_bf_from_data}
 \alias{strict_meta_bf_from_data}
-\title{Compute Strict Pairwise Meta-Analytic Bayes Factors for Multiple Measurements}
+\title{Compute Strict Pairwise Meta-Analytic Log Bayes Factors}
 \usage{
 strict_meta_bf_from_data(
   data,
@@ -15,98 +15,46 @@ strict_meta_bf_from_data(
 )
 }
 \arguments{
-\item{data}{A dataframe containing the measurements, standard scores, and optionally subject IDs across datasets.}
+\item{data}{A data frame containing measurements, standard scores, and optionally subject IDs.}
 
-\item{dataset_col}{A string specifying the column name that identifies datasets.}
+\item{dataset_col}{Column name identifying datasets.}
 
-\item{measurement_name_col}{A string specifying the column name that identifies different measurements.}
+\item{measurement_name_col}{Column name identifying measurement types.}
 
-\item{standard_scores_col}{A string specifying the column name containing the standard scores (predictor or grouping variable).}
+\item{standard_scores_col}{Column name for the standard scores (predictor / grouping variable).}
 
-\item{measurement_values_col}{A string specifying the column name containing the measurement values.}
+\item{measurement_values_col}{Column name for measurement values.}
 
-\item{subject_id_col}{(Optional) A string specifying the column name that identifies unique subjects.
-If provided, subject-level statistics will be extracted if your extract_stats supports it.}
+\item{subject_id_col}{(Optional) Column name identifying unique subjects.}
 
-\item{verbose}{Logical; if TRUE, messages about dataset inclusion/exclusion are printed.}
+\item{verbose}{Logical; if TRUE, prints information on skipped datasets.}
 }
 \value{
-A list containing:
+A list with:
 \describe{
-\item{bf_matrix}{A symmetric matrix of pairwise meta-analytic Bayes factors (BFs) for all measurement types.}
-\item{log_bf_matrix}{A matrix of pairwise log2 Bayes factors. log(BF_ij) = -log(BF_ji).}
-\item{n_datasets_used}{A matrix: number of datasets contributing to each pairwise meta-analysis.}
-\item{n_samples_used}{A matrix: total sample size contributing to each pairwise meta-analysis (sum of n for each dataset in which both are present and valid).}
+\item{log_bf_matrix}{Symmetric matrix of pairwise meta-analytic log Bayes factors (natural log).
+\eqn{logBF_{ij} = -logBF_{ji}}.}
+\item{n_datasets_used}{Matrix: number of datasets contributing to each pairwise meta-analysis.}
+\item{n_samples_used}{Matrix: total sample size contributing to each pairwise meta-analysis.}
 }
 }
 \description{
-This function computes \strong{strict, pairwise meta-analytic Bayes Factors (BFs)} for measurement types across multiple datasets,
-using only those datasets in which \emph{both} measures of a pair are present and valid. For each pair of measures,
-it meta-analytically combines the within-dataset Bayes factor contrasts, properly handling cases where the BF
-cannot be mapped to a real t-statistic.
+Computes \strong{strict, pairwise meta-analytic log Bayes Factors} (natural log scale)
+for multiple measurement types across datasets.
+Only datasets containing both measurements are included for each pair.
+Within each dataset, the log Bayes factors for the two measurements are contrasted,
+converted back to a t-statistic contrast, and meta-analytically combined.
 }
 \details{
-Returns symmetric matrices of pairwise Bayes factors, log Bayes factors, number of datasets used per pair,
-and total sample size used per pair.
-
-Only datasets in which both measurement types are present are used for each pair. For each such dataset,
-Bayes factors for each measure (against the null) are computed and their ratio is mapped back to a t-statistic.
-Datasets in which this mapping fails (i.e., where the Bayes factor ratio is too low to produce a real t-statistic)
-are counted as "no evidence" (t = 0). The function then performs a meta-analytic weighted combination of the
-resulting t-statistics, and reports the combined Bayes factor.
+\itemize{
+\item Works entirely in \strong{log-space} to prevent overflow and maintain numerical stability.
+\item Datasets where the Bayes factor mapping fails (non-real t) contribute zero evidence (\emph{t}=0).
+\item Combined statistics are computed via weighted averaging of within-dataset contrasts.
+}
 }
 \examples{
-# Load required library
-require(dplyr)
-
-# Set seed for reproducibility
-set.seed(123)
-
-# Function to generate a study dataset
-generate_study <- function(study_id, n_per_group, within = TRUE) {
-  df <- expand.grid(
-    study_id = study_id,           # Study ID
-    subject_id = 1:n_per_group,    # Unique subject ID for within-subject design
-    standard_score = c(0, 1),      # Binary standard scores
-    measurement_type = c("A", "B") # Two measurement types
-  )
-  # In a between-subject design, each subject only has one score
-  if (!within) {
-    df$subject_id <- 1:nrow(df)  # Ensure unique subject IDs
-  }
-
-  # Generate measurement values based on standard score and measurement type
-  df$measurement <- with(df, rnorm(nrow(df),
-                                   mean = ifelse(measurement_type == "A",
-                                                 ifelse(standard_score == 1, 10, 5),
-                                                 ifelse(standard_score == 1, 7, 6)),
-                                   sd = 5))
-  return(df)
-}
-
-# Generate example studies
-all_studies <- do.call(rbind, list(
-  generate_study("Study1", 30, within = TRUE),   # Within-subject study
-  generate_study("Study2", 30, within = TRUE),   # Another within-subject study
-  generate_study("Study3", 30, within = FALSE)   # Between-subject study
-))
-
-# Compute the strict pairwise meta-analytic Bayes Factor summary
-result <- strict_meta_bf_from_data(
-  data = all_studies,
-  dataset_col = "study_id",
-  standard_scores_col = "standard_score",
-  measurement_name_col = "measurement_type",
-  measurement_values_col = "measurement",
-  subject_id_col = "subject_id"
-)
-
-print(result$bf_matrix)        # Pairwise Bayes Factor matrix
-print(result$log_bf_matrix)    # Log2 Bayes Factor matrix
-print(result$n_datasets_used)  # Datasets used per pair
-print(result$n_samples_used)   # Sample size used per pair
-
+# Example with synthetic data (see full package docs)
 }
 \seealso{
-\code{\link{meta_bf_from_data}}, \code{\link{tstat2bf}}, \code{\link{bf2tstat}}
+\code{\link{meta_bf_from_data}}, \code{\link{tstat2logbf}}, \code{\link{logbf2tstat}}
 }

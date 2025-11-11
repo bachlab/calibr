@@ -11,7 +11,7 @@ calibration_summary(
   measurement_values_col,
   standard_scores_col,
   subject_id_col = NULL,
-  relevant_difference = 0.5,
+  attenuation_factor = 0.9,
   power = 0.8,
   sig.level = 0.05,
   alternative = "two.sided"
@@ -30,14 +30,17 @@ calibration_summary(
 
 \item{subject_id_col}{A string specifying the column name containing subject IDs - can be NULL.}
 
-\item{relevant_difference}{A numeric value specifying the smallest difference in means considered \strong{practically meaningful} (to compute Cohen's d). Default is 0.5. Only applicable to binary designs.}
+\item{attenuation_factor}{A numeric value (0 < x ≤ 1) indicating the expected proportional transfer
+of the calibration effect to the target context. For example, \code{attenuation_factor = 0.9}
+assumes real-world effects are expected to be 90\% as strong as those observed in calibration.
+Only applicable to binary designs.}
 
-\item{power}{Power of test (1 minus Type II error probability); used to compute sample size. See pwr::pwr.r.test.}
+\item{power}{Power of test (1 minus Type II error probability); used to compute sample size. See pwr::pwr.t.test.}
 
-\item{sig.level}{Significance level (Type I error probability); used to compute sample size. See pwr::pwr.r.test.}
+\item{sig.level}{Significance level (Type I error probability); used to compute sample size. See pwr::pwr.t.test.}
 
-\item{alternative}{a character string specifying the alternative hypothesis, must be one of "two.sided" (default), "greater" or "less";
-used to compute sample size. See pwr::pwr.r.test.}
+\item{alternative}{a character string specifying the alternative hypothesis, must be one of "two.sided" (default),
+"greater" or "less"; used to compute sample size. See pwr::pwr.t.test.}
 }
 \value{
 A list containing:
@@ -53,7 +56,7 @@ based on combined dataset-subject identifiers. Returned only if subject_id_col i
 This function computes a calibration summary by:
 \itemize{
 \item Running \code{meta_bf_from_data()} for \strong{Bayes Factors}.
-\item Running \code{meta_cohensd()} for \strong{Cohen's d and Hedge's g} (only if \code{standard_scores_col} is binary).
+\item Running \code{meta_cohensd()} for \strong{Cohen's d and Hedges' g} (only if \code{standard_scores_col} is binary).
 \item Returning a \strong{matrix of Bayes Factor ratios} between measurements.
 \item Identifying \strong{the best measurement} based on Bayes Factor.
 \item Optionally returning the \strong{subject overlap matrix} (percentage of shared data between measurements).
@@ -63,14 +66,16 @@ This function computes a calibration summary by:
 \itemize{
 \item If \code{standard_scores_col} is \strong{binary (0/1)}, effect sizes (Cohen's d, Hedges' g) will be computed.
 \item If \code{standard_scores_col} is \strong{continuous}, only Bayes Factors will be computed.
-\item The \code{relevant_difference} parameter sets the \strong{smallest difference on the measurement scale} considered scientifically meaningful for power/sample size calculations.
+\item The \code{attenuation_factor} rescales the inferred meta-analytic Cohen’s d to reflect the expected
+proportion of the calibration effect that generalizes to a new or target context.
+For example, setting \code{attenuation_factor = 0.8} means that only 80\% of the calibration effect
+is assumed to hold in the substantive experiment, leading to larger required sample sizes.
 }
 }
 \examples{
-# Load required library
 require(dplyr)
-
 set.seed(123)
+
 generate_study <- function(study_id, n_per_group, within = TRUE) {
   df <- expand.grid(
     study_id = study_id,
@@ -100,7 +105,7 @@ result <- calibration_summary(
   measurement_name_col = "measurement_type",
   measurement_values_col = "measurement",
   subject_id_col = "subject_id",
-  relevant_difference = 0.5 # now explicitly shown
+  attenuation_factor = 0.9
 )
 
 print(result$summary_table)

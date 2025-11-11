@@ -42,7 +42,7 @@ test_that("meta_cohensd throws an error when group column is not binary", {
 
   expect_error(
     meta_cohensd(test_data_invalid, "dataset", "group", "measurement_name", "measurement_value"),
-    "Error: the standard score variable group is not binary."
+    "Error: the standard score variable 'group' is not binary."
   )
 })
 

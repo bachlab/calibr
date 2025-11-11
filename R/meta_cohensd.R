@@ -103,7 +103,7 @@ meta_cohensd <- function(data, dataset_col = NULL, standard_scores_col, measurem
 
   # Ensure binary standard_scores
   if (length(standard_score_levels) != 2) {
-    stop(paste("Error: the standard score variable", standard_scores_col,"is not binary."))
+    stop(sprintf("Error: the standard score variable '%s' is not binary.", standard_scores_col))
   }
 
   # Identify unique measurement types
@@ -199,7 +199,8 @@ meta_cohensd <- function(data, dataset_col = NULL, standard_scores_col, measurem
 
     # Add measurement to meta results record
     meta_results <- rbind(meta_results, data.frame(
-      measurement = measurement, meta_cohen_d = meta_cohen_d,
+      measurement = measurement,
+      meta_cohen_d = meta_cohen_d,
       meta_hedge_g = meta_hedge_g,
       stringsAsFactors = FALSE
     ))

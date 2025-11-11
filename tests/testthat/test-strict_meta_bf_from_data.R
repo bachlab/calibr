@@ -14,7 +14,7 @@ test_that("strict_meta_bf_from_data stops when there is no overlap for any pair"
       standard_scores_col = "standard_scores_col",
       measurement_values_col = "measurement_values_col"
     ),
-    "No pair of measurements has overlapping data. Cannot compute any meta-analytic Bayes factor."
+    "No pair of measurements has overlapping data."
   )
 })
 
@@ -52,5 +52,5 @@ test_that("strict_meta_bf_from_data returns NA for pairs with no overlap, but wo
     measurement_values_col = "measurement_values_col"
   )
   expect_true(is.list(result))
-  expect_true(any(is.na(result$bf_matrix)))
+  expect_true(any(is.na(result$log_bf_matrix)))
 })

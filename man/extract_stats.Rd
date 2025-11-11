@@ -2,51 +2,71 @@
 % Please edit documentation in R/extract_stats.R
 \name{extract_stats}
 \alias{extract_stats}
-\title{Extract Statistical Information from a Regression Model}
+\title{Extract Statistical Information for Bayes Factor Computation}
 \usage{
 extract_stats(standard_scores, measurement_values, subject_ids = NULL)
 }
 \arguments{
-\item{standard_scores}{A numeric vector containing the dependent variable (outcome).}
+\item{standard_scores}{A numeric (typically binary 0/1) vector representing the
+standard or outcome scores.}
 
-\item{measurement_values}{A numeric vector containing the independent variable (predictor).}
+\item{measurement_values}{A numeric vector of measurement values to be correlated
+with \code{standard_scores}.}
 
-\item{subject_ids}{(Optional) A vector indicating subject IDs. If provided, the function
-fits a mixed-effects model with a \strong{random intercept} for each subject.}
+\item{subject_ids}{(Optional) A vector of subject identifiers. If provided, the
+correlation is computed within subjects by partialling out subject effects
+(equivalent to including subject fixed effects in a regression model).}
 }
 \value{
 A list containing:
 \describe{
-\item{t_statistic}{The t-statistic for \code{measurement_values} (slope of the predictor).}
-\item{sum_squares}{The sum of squares for \code{measurement_values}, used for weighting.}
-\item{sample_size}{The total number of observations included in the model.}
+\item{t_statistic}{The t-statistic corresponding to the (partial) correlation
+between \code{measurement_values} and \code{standard_scores}. This statistic is
+directly compatible with Eq. 5 for Bayes factor computation.}
+\item{sum_squares}{The sum of squares of \code{measurement_values} at the appropriate
+level (within-subject if repeated, across all data if unpaired), used for weighting.}
+\item{sample_size}{An effective sample size such that \code{sample_size - 2}
+equals the residual degrees of freedom associated with the t-statistic.}
 }
 }
 \description{
-This function extracts key statistics from a regression model where \code{standard_scores}
-are predicted from \code{measurement_values}. It supports both simple linear regression
-(when no \code{subject_ids} is provided) and mixed-effects modeling with subject-specific
-intercepts (when \code{subject_ids} is provided). The t-statistics are computed using the
-number of subejcts minus 2 degrees of freedom.
+This function extracts the key statistics needed for computing a correlation-based
+Bayes factor (Eq. 5). It computes the Pearson correlation between \code{measurement_values}
+and \code{standard_scores}, and converts it to a t-statistic. When \code{subject_ids} are provided,
+it computes the \strong{within-subject partial correlation} (i.e., the correlation of
+subject-centered residuals) to account for repeated or paired measurements.
 }
 \details{
 \itemize{
-\item If \code{subject_ids} is \strong{not provided}, the function runs a \strong{simple linear regression}:#'
-\item If \code{subject_ids} is \strong{provided}, the function subtracts the mean of measurement_values for a given subject_ids.
+\item If \code{subject_ids} is \strong{not provided}, the function computes a standard Pearson correlation
+and converts it to a t-statistic using \eqn{t = r\sqrt{(n-2)/(1-r^2)}} with \eqn{df = n-2}.
+\item If \code{subject_ids} is \strong{provided}, both variables are centered within each subject,
+yielding a within-subject (partial) correlation. The corresponding t-statistic is computed
+using \eqn{df = N - S - 1}, where \eqn{N} is the number of rows and \eqn{S} is the number
+of unique subjects. This t is identical to that from \code{lm(measurement ~ score + subject)}.
 }
+
+The resulting \code{t_statistic} and \code{sample_size} are suitable for direct use in
+\code{tstat2bf()} and then \code{meta_bf_from_data()}.
 }
 \examples{
-set.seed(123)
-df <- data.frame(
-  subject_ids = rep(1:10, each = 5),
-  standard_scores = rnorm(50),
-  measurement_values = rnorm(50, mean = 5, sd = 2)
+# Example 1: Unpaired design (between subjects)
+df1 <- data.frame(
+  subject = paste0("S", 1:4),
+  score = c(0, 0, 1, 1),
+  measurement = c(1.0, 0.6, 1.9, 1.5)
 )
+extract_stats(df1$score, df1$measurement)
 
-# Example 1: Simple regression (no subject effects)
-extract_stats(df$standard_scores, df$measurement_values)
+# Example 2: Paired / repeated design (within subjects)
+df2 <- data.frame(
+  subject = c("A","A","B","B","C","C"),
+  score = c(0,1,0,1,0,1),
+  measurement = c(1.2,1.8,0.7,1.1,2.0,2.4)
+)
+extract_stats(df2$score, df2$measurement, df2$subject)
 
-# Example 2: Mixed-effects model with subject-specific intercepts
-extract_stats(df$standard_scores, df$measurement_values, df$subject_ids)
-
+}
+\seealso{
+\code{\link{tstat2bf}}, \code{\link{meta_bf_from_data}}
 }
