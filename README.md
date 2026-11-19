@@ -99,5 +99,15 @@ Bayes factors (BFs) and Cohen’s *d* are not in one-to-one correspondence. Disc
 
 ---
 
+**I got a warning that a dataset is within-subject for the Bayes factor but between-subject for Cohen’s d. What does it mean?**  
+When `subject_id_col` is provided, the two computations classify each dataset’s design with different rules:
+
+- **Bayes factors** (`extract_stats`) treat a dataset as **within-subject** as soon as *any* subject has repeated measurements, and partial out subject effects using all available rows.  
+- **Cohen’s d** (`meta_cohensd`) treats a dataset as **paired** only if *every* subject has exactly one measurement at each of the two standard score levels. Otherwise it is treated as **unpaired**, and the within-subject correlation is ignored when computing the variance of *d*.  
+
+Typical cases that trigger the warning are incomplete pairs (some subjects measured in only one condition) and repeated trials per condition. For these datasets, the BF and *d* weights rest on different design assumptions, which is a further possible source of disagreement between BF and Cohen’s *d* rankings. If you want both to treat the dataset identically, either provide data with exactly one measurement per subject and condition, or omit `subject_id_col` to treat all datasets as between-subject. Note that averaging repeated trials to obtain one measurement per condition reduces the measurement standard deviation, so the resulting *d* is not directly comparable with *d* from datasets that were not averaged.  
+
+---
+
 **What if my standard score isn’t binary?**  
 If your standard score is not binary, Cohen’s *d* is not meaningful. You will still receive all other outputs.  
