@@ -45,8 +45,9 @@ Only applicable to binary designs.}
 \value{
 A list containing:
 \describe{
-\item{summary_table}{A dataframe summarizing results from Bayes Factor and effect size computations.}
-\item{log_bayes_factor_diffs}{A matrix of Bayes Factor log-ratio differences between all measurements.}
+\item{summary_table}{A dataframe summarizing results from Bayes Factor and effect size computations.
+Log Bayes Factors are in natural log.}
+\item{log_bayes_factor_diffs}{A matrix of Bayes Factor log-ratio differences (natural log) between all measurements.}
 \item{best_measurement}{A descriptive summary of the best-performing measurement.}
 \item{subject_overlap}{A matrix showing the percentage of shared subjects between measurement types,
 based on combined dataset-subject identifiers. Returned only if subject_id_col is provided and multiple datasets exist.}
@@ -57,15 +58,14 @@ This function computes a calibration summary by:
 \itemize{
 \item Running \code{meta_bf_from_data()} for \strong{Bayes Factors}.
 \item Running \code{meta_cohensd()} for \strong{Cohen's d and Hedges' g} (only if \code{standard_scores_col} is binary).
-\item Returning a \strong{matrix of Bayes Factor ratios} between measurements.
+\item Returning a \strong{matrix of log Bayes Factor differences} between measurements.
 \item Identifying \strong{the best measurement} based on Bayes Factor.
 \item Optionally returning the \strong{subject overlap matrix} (percentage of shared data between measurements).
 }
 }
 \details{
 \itemize{
-\item If \code{standard_scores_col} is \strong{binary (0/1)}, effect sizes (Cohen's d, Hedges' g) will be computed.
-\item If \code{standard_scores_col} is \strong{continuous}, only Bayes Factors will be computed.
+\item If \code{standard_scores_col} is \strong{binary (0/1)}, effect sizes (Cohen's d, Hedges' g) will be computed. If not only Bayes Factors will be computed.
 \item The \code{attenuation_factor} rescales the inferred meta-analytic Cohen’s d to reflect the expected
 proportion of the calibration effect that generalizes to a new or target context.
 For example, setting \code{attenuation_factor = 0.8} means that only 80\% of the calibration effect

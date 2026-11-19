@@ -17,18 +17,20 @@
 #' This function returns \eqn{\log BF_{10}} (natural log).
 #' To convert to base-2 logarithms, divide by \code{log(2)}.
 #' To obtain the raw Bayes Factor, exponentiate the result, i.e. \code{exp(log_bf)}.
+#' The evidence categories of Kass & Raftery (1995), used in Nikolakopoulos & Ntzoufras (2021),
+#' are on the \eqn{2 \log BF} scale; multiply by 2 before applying them.
 #'
 #' @return Numeric vector of log Bayes Factors (\eqn{\log BF_{10}}).
 #'
 #' @examples
 #' # Example: Compute log BF for t = 2.5, n = 30
-#' tstat2bf(2.5, 30)
+#' tstat2logbf(2.5, 30)
 #'
 #' # Example: Compute log BF with custom g
-#' tstat2bf(2.5, 30, g = 15)
+#' tstat2logbf(2.5, 30, g = 15)
 #'
 #' # Example: Vectorized usage
-#' tstat2bf(c(2, 3, 5), c(30, 30, 30))
+#' tstat2logbf(c(2, 3, 5), c(30, 30, 30))
 #'
 #' @export
 tstat2logbf <- function(t_statistic, sample_size, g = sample_size) {

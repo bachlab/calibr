@@ -11,15 +11,20 @@ The logic underlying the choice of Bayes factors to indicate retrodictive validi
 ---
 
 ## 🔧 **Installation**
-To install calibr from GitLab, use the following command in R:
+To install calibr from GitHub, use the following command in R:
 
 ```r
 # Install necessary dependencies
 install.packages("devtools")  
 
-# Install from GitLab
-devtools::install_git("https://gitlab.com/bachlab/methods/calibr.git")
+# Install the latest version from GitHub
+devtools::install_github("bachlab/calibr")
+
+# Or install a specific release (recommended for reproducibility, e.g. when citing calibr in a paper)
+devtools::install_github("bachlab/calibr@v0.1.0")
 ```
+
+Releases and their changes are listed at <https://github.com/bachlab/calibr/releases>.
 
 ## 📊  Use case: computing a calibration summary
 In this example, three datasets from different studies are analyzed in a between-subjects setting: the binary standard score (0/1) forms two groups. 
@@ -72,9 +77,9 @@ result <- calibration_summary(
   standard_scores_col = "standard_score"
 )
 
-# Main summary table (ordered by log BF)
+# Main summary table (ordered by natural-log BF)
 print(result$summary_table)
-# Matrix of pairwise log BF differences
+# Matrix of pairwise natural-log BF differences
 print(result$log_bayes_factor_diffs)
 # Short statement about the best measurement
 cat(result$best_measurement, "\n")
@@ -96,6 +101,16 @@ The `subject_overlap` metric in `meta_bf_from_data` quantifies how reliable each
 
 **My BF ranking and Cohen’s d ranking don’t perfectly match. Why?**  
 Bayes factors (BFs) and Cohen’s *d* are not in one-to-one correspondence. Discrepancies arise because each is combined across datasets differently. The weighting schemes emphasize different dataset features, which can lead to mismatches.  
+
+---
+
+**I got a warning that a dataset is within-subject for the Bayes factor but between-subject for Cohen’s d. What does it mean?**  
+When `subject_id_col` is provided, the two computations classify each dataset’s design with different rules:
+
+- **Bayes factors** (`extract_stats`) treat a dataset as **within-subject** as soon as *any* subject has repeated measurements, and partial out subject effects using all available rows.  
+- **Cohen’s d** (`meta_cohensd`) treats a dataset as **paired** only if *every* subject has exactly one measurement at each of the two standard score levels. Otherwise it is treated as **unpaired**, and the within-subject correlation is ignored when computing the variance of *d*.  
+
+Typical cases that trigger the warning are incomplete pairs (some subjects measured in only one condition) and repeated trials per condition. For these datasets, the BF and *d* weights rest on different design assumptions, which is a further possible source of disagreement between BF and Cohen’s *d* rankings. If you want both to treat the dataset identically, either provide data with exactly one measurement per subject and condition, or omit `subject_id_col` to treat all datasets as between-subject. Note that averaging repeated trials to obtain one measurement per condition reduces the measurement standard deviation, so the resulting *d* is not directly comparable with *d* from datasets that were not averaged.  
 
 ---
 

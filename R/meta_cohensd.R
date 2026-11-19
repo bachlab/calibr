@@ -16,7 +16,8 @@
 #' @param measurement_values_col A string specifying the column name that contains measurement values (continuous variable).
 #' @param subject_id_col (Optional) A string specifying the column name that identifies unique subjects.
 #'        If provided, the function determines whether each dataset is paired (within-subject) or unpaired.
-#'        Paired analysis only applies if ALL subjects have measurements for both standard_scores.
+#'        Paired analysis only applies if EVERY subject has exactly one measurement at each of the
+#'        two standard score levels; otherwise the dataset is treated as unpaired.
 #'
 #' @return A list containing:
 #'   \describe{
@@ -27,8 +28,14 @@
 #' @details
 #' - If `subject_id_col` is **not provided**, all datasets are treated as **unpaired** (between-subject).
 #' - If `subject_id_col` **is provided**, the function checks whether subjects appear in both standard_scores:
-#'   - If a dataset contains all repeated subjects across standard_scores, it is treated as **paired (within-subject)**.
-#'   - Otherwise, it is treated as **unpaired (between-subject)**.
+#'   - If every subject in a dataset has exactly one measurement at each standard score level,
+#'     it is treated as **paired (within-subject)**, and the within-subject correlation is computed
+#'     after matching the two conditions by subject ID.
+#'   - Otherwise (e.g. incomplete pairs, repeated trials per condition, or missing subject IDs),
+#'     it is treated as **unpaired (between-subject)**.
+#'   - Note that \code{extract_stats()} (used for the Bayes factors) treats a dataset as
+#'     within-subject as soon as any subject has repeated measurements. When a dataset is
+#'     within-subject for the Bayes factor but unpaired for Cohen's d, a warning is issued.
 #'
 #' - **For both paired and unpaired designs**, Cohen’s d is computed as:
 #'   \deqn{ d = \frac{\mathrm{mean_1} - \mathrm{mean_2}}{\mathrm{pooled\_sd}} }
@@ -145,8 +152,30 @@ meta_cohensd <- function(data, dataset_col = NULL, standard_scores_col, measurem
       pooled_sd <- sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / nu)
 
 
-      # Determine if the dataset should be analyzed as paired or unpaired
-      is_paired <- !is.null(subject_id_col) && all(table(subset_data[[subject_id_col]]) == 2)
+      # Determine if the dataset should be analyzed as paired or unpaired:
+      # paired only if every subject has exactly one row at each of the two standard score levels
+      is_paired <- FALSE
+      if (!is.null(subject_id_col) && !anyNA(subset_data[[subject_id_col]])) {
+        pair_table <- table(
+          subset_data[[subject_id_col]],
+          factor(subset_data[[standard_scores_col]], levels = standard_score_levels)
+        )
+        is_paired <- all(pair_table == 1)
+      }
+
+      # Flag design mismatch with the Bayes factor: extract_stats() treats a dataset as
+      # within-subject as soon as ANY subject has repeated rows, whereas Cohen's d here
+      # requires complete one-to-one pairs.
+      if (!is_paired && !is.null(subject_id_col) &&
+          any(table(subset_data[[subject_id_col]]) > 1)) {
+        warning(sprintf(paste0(
+          "Dataset '%s', measurement '%s': subjects have repeated measurements, so the Bayes factor ",
+          "treats this dataset as within-subject, but Cohen's d treats it as between-subject ",
+          "(paired d requires exactly one measurement per subject at each standard score level). ",
+          "BF and d rankings may therefore disagree."),
+          as.character(dataset), as.character(measurement)
+        ))
+      }
 
       subset_score_1 <- subset_data[subset_data[[standard_scores_col]] == standard_score_levels[1],]
       subset_score_2 <- subset_data[subset_data[[standard_scores_col]] == standard_score_levels[2],]
@@ -171,7 +200,10 @@ meta_cohensd <- function(data, dataset_col = NULL, standard_scores_col, measurem
 
       if (is_paired) {
         # Paired (within-subject) case
-        rho <- stats::cor(subset_score_1[[measurement_values_col]], subset_score_2[[measurement_values_col]])
+        # Align the two conditions by subject ID (not by row order) before correlating
+        match_idx <- match(subset_score_1[[subject_id_col]], subset_score_2[[subject_id_col]])
+        rho <- stats::cor(subset_score_1[[measurement_values_col]],
+                          subset_score_2[[measurement_values_col]][match_idx])
         var_d <- (nu / (nu - 2)) * ((2 * (1 - rho)) / n1) * (1 + ((cohen_d^2) * n1)/(2 * (1 - rho))) - cohen_d^2/Jh^2
       } else {
         # Unpaired (between-subject) case

@@ -6,21 +6,29 @@
 #' For each measurement:
 #' * Extracts per-dataset t-statistics and ancillary stats via `extract_stats()`.
 #' * Combines t-statistics using `compute_weights()` to form a weighted t (`sum(weights * t_i)`).
-#' * Computes the Bayes factor from that combined t using `tstat2bf()`.
+#' * Computes the log Bayes factor (natural log) from that combined t using `tstat2logbf()`.
 #' * Computes the **meta-analytic retrodiction score** by converting each t to its
 #'   corresponding correlation (\eqn{r_i = t_i / \sqrt{t_i^2 + \mathrm{df}_i}}),
 #'   Fisher-z transforming each, weighting by their residual degrees of freedom
 #'   (\eqn{w_i = \mathrm{df}_i - 1}), averaging, and back-transforming with \eqn{tanh()}.
 #'
+#' @param data A dataframe containing multiple datasets, measurement types, and measurement values.
+#' @param dataset_col A string specifying the column name that identifies datasets - if NULL, all data pertains to one dataset.
+#' @param measurement_name_col A string specifying the column name that identifies different measurements.
+#' @param standard_scores_col A string specifying the column name containing standard scores.
+#' @param measurement_values_col A string specifying the column name containing measurement values.
+#' @param subject_id_col A string specifying the column name containing subject IDs - can be NULL.
+#'        If provided, datasets with repeated subjects are analysed within-subject (see \code{extract_stats()}).
+#'
 #' @return A list with three elements:
 #' \describe{
 #'   \item{meta_results}{Data frame with one row per measurement containing:
-#'     `measurement`, `log_combined_bayes_factor`,
+#'     `measurement`, `log_combined_bayes_factor` (natural log),
 #'     `retrodiction_score`, `sample_size`, and `combined_t_statistic`.}
 #'   \item{subject_overlap}{Matrix of shared subjects between measurements, if applicable.}
 #'   \item{weights}{List of per-dataset weight tables for each measurement.}
 #' }
-#' @seealso \code{\link{extract_stats}}, \code{\link{compute_weights}}, \code{\link{tstat2bf}}
+#' @seealso \code{\link{extract_stats}}, \code{\link{compute_weights}}, \code{\link{tstat2logbf}}
 #' @export
 meta_bf_from_data <- function(data, dataset_col = NULL, measurement_name_col,
                               standard_scores_col, measurement_values_col,

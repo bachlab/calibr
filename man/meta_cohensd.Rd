@@ -27,7 +27,8 @@ taken in the computation of Cohen's d is \emph{higher} minus \emph{lower} standa
 
 \item{subject_id_col}{(Optional) A string specifying the column name that identifies unique subjects.
 If provided, the function determines whether each dataset is paired (within-subject) or unpaired.
-Paired analysis only applies if ALL subjects have measurements for both standard_scores.}
+Paired analysis only applies if EVERY subject has exactly one measurement at each of the
+two standard score levels; otherwise the dataset is treated as unpaired.}
 }
 \value{
 A list containing:
@@ -50,8 +51,14 @@ The Quantitative Methods for Psychology, 14(4), 242-265.
 \item If \code{subject_id_col} is \strong{not provided}, all datasets are treated as \strong{unpaired} (between-subject).
 \item If \code{subject_id_col} \strong{is provided}, the function checks whether subjects appear in both standard_scores:
 \itemize{
-\item If a dataset contains all repeated subjects across standard_scores, it is treated as \strong{paired (within-subject)}.
-\item Otherwise, it is treated as \strong{unpaired (between-subject)}.
+\item If every subject in a dataset has exactly one measurement at each standard score level,
+it is treated as \strong{paired (within-subject)}, and the within-subject correlation is computed
+after matching the two conditions by subject ID.
+\item Otherwise (e.g. incomplete pairs, repeated trials per condition, or missing subject IDs),
+it is treated as \strong{unpaired (between-subject)}.
+\item Note that \code{extract_stats()} (used for the Bayes factors) treats a dataset as
+within-subject as soon as any subject has repeated measurements. When a dataset is
+within-subject for the Bayes factor but unpaired for Cohen's d, a warning is issued.
 }
 \item \strong{For both paired and unpaired designs}, Cohen’s d is computed as:
 \deqn{ d = \frac{\mathrm{mean_1} - \mathrm{mean_2}}{\mathrm{pooled\_sd}} }

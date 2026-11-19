@@ -47,7 +47,7 @@ of unique subjects. This t is identical to that from \code{lm(measurement ~ scor
 }
 
 The resulting \code{t_statistic} and \code{sample_size} are suitable for direct use in
-\code{tstat2bf()} and then \code{meta_bf_from_data()}.
+\code{tstat2logbf()} and then \code{meta_bf_from_data()}.
 }
 \examples{
 # Example 1: Unpaired design (between subjects)
@@ -68,5 +68,5 @@ extract_stats(df2$score, df2$measurement, df2$subject)
 
 }
 \seealso{
-\code{\link{tstat2bf}}, \code{\link{meta_bf_from_data}}
+\code{\link{tstat2logbf}}, \code{\link{meta_bf_from_data}}
 }
