@@ -11,6 +11,8 @@ Description: CalibR provides a suite of tools for experimental calibration in st
     The package is based on the methodology presented in "Meta-Analysis of Bayes Factors" 
     by Stavros Nikolakopoulos and Ioannis Ntzoufras.
 License: MIT + file LICENSE
+URL: https://github.com/bachlab/calibr
+BugReports: https://github.com/bachlab/calibr/issues
 Encoding: UTF-8
 Imports:
     Rmpfr,

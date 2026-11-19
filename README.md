@@ -11,14 +11,14 @@ The logic underlying the choice of Bayes factors to indicate retrodictive validi
 ---
 
 ## 🔧 **Installation**
-To install calibr from GitLab, use the following command in R:
+To install calibr from GitHub, use the following command in R:
 
 ```r
 # Install necessary dependencies
 install.packages("devtools")  
 
-# Install from GitLab
-devtools::install_git("https://gitlab.com/bachlab/methods/calibr.git")
+# Install from GitHub
+devtools::install_github("bachlab/calibr")
 ```
 
 ## 📊  Use case: computing a calibration summary
