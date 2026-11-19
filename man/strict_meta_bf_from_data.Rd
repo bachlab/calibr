@@ -32,29 +32,35 @@ strict_meta_bf_from_data(
 \value{
 A list with:
 \describe{
-\item{log_bf_matrix}{Symmetric matrix of pairwise meta-analytic log Bayes factors (natural log).
-\eqn{logBF_{ij} = -logBF_{ji}}.}
+\item{log_bf_matrix}{Antisymmetric matrix of pairwise meta-analytic log Bayes factors (natural log),
+\eqn{logBF_{ij} = -logBF_{ji}}. Positive values favour the row measurement over the column one.}
 \item{n_datasets_used}{Matrix: number of datasets contributing to each pairwise meta-analysis.}
-\item{n_samples_used}{Matrix: total sample size contributing to each pairwise meta-analysis.}
+\item{n_samples_used}{Matrix: per pair, the sum over shared datasets of the smaller of the two
+measurements' effective sample sizes.}
 }
 }
 \description{
 Computes \strong{strict, pairwise meta-analytic log Bayes Factors} (natural log scale)
 for multiple measurement types across datasets.
 Only datasets containing both measurements are included for each pair.
-Within each dataset, the log Bayes factors for the two measurements are contrasted,
-converted back to a t-statistic contrast, and meta-analytically combined.
+For each pair, the meta-analytic log Bayes factor of each measurement against the null
+(intercept-only) model is computed on these shared datasets, exactly as in
+\code{meta_bf_from_data()}, and the two are subtracted:
+\eqn{\log BF_{12} = \log BF_{10} - \log BF_{20}}.
 }
 \details{
 \itemize{
 \item Works entirely in \strong{log-space} to prevent overflow and maintain numerical stability.
-\item Datasets where the Bayes factor mapping fails (non-real t) contribute zero evidence (\emph{t}=0).
-\item Combined statistics are computed via weighted averaging of within-dataset contrasts.
+\item Datasets where either measurement yields a non-finite t-statistic or log Bayes factor are skipped
+for that pair (reported when \code{verbose = TRUE}).
+\item The result does not depend on the order of rows or measurements in \code{data}.
+\item With complete overlap (every dataset contains both measurements), the result equals the
+corresponding entry of \code{calibration_summary()$log_bayes_factor_diffs}.
 }
 }
 \examples{
 # Example with synthetic data (see full package docs)
 }
 \seealso{
-\code{\link{meta_bf_from_data}}, \code{\link{tstat2logbf}}, \code{\link{logbf2tstat}}
+\code{\link{meta_bf_from_data}}, \code{\link{tstat2logbf}}, \code{\link{compute_weights}}
 }

@@ -3,8 +3,10 @@
 #' Computes **strict, pairwise meta-analytic log Bayes Factors** (natural log scale)
 #' for multiple measurement types across datasets.
 #' Only datasets containing both measurements are included for each pair.
-#' Within each dataset, the log Bayes factors for the two measurements are contrasted,
-#' converted back to a t-statistic contrast, and meta-analytically combined.
+#' For each pair, the meta-analytic log Bayes factor of each measurement against the null
+#' (intercept-only) model is computed on these shared datasets, exactly as in
+#' \code{meta_bf_from_data()}, and the two are subtracted:
+#' \eqn{\log BF_{12} = \log BF_{10} - \log BF_{20}}.
 #'
 #' @param data A data frame containing measurements, standard scores, and optionally subject IDs.
 #' @param dataset_col Column name identifying datasets.
@@ -16,18 +18,22 @@
 #'
 #' @return A list with:
 #' \describe{
-#'   \item{log_bf_matrix}{Symmetric matrix of pairwise meta-analytic log Bayes factors (natural log).
-#'         \eqn{logBF_{ij} = -logBF_{ji}}.}
+#'   \item{log_bf_matrix}{Antisymmetric matrix of pairwise meta-analytic log Bayes factors (natural log),
+#'         \eqn{logBF_{ij} = -logBF_{ji}}. Positive values favour the row measurement over the column one.}
 #'   \item{n_datasets_used}{Matrix: number of datasets contributing to each pairwise meta-analysis.}
-#'   \item{n_samples_used}{Matrix: total sample size contributing to each pairwise meta-analysis.}
+#'   \item{n_samples_used}{Matrix: per pair, the sum over shared datasets of the smaller of the two
+#'         measurements' effective sample sizes.}
 #' }
 #'
 #' @details
 #' - Works entirely in **log-space** to prevent overflow and maintain numerical stability.
-#' - Datasets where the Bayes factor mapping fails (non-real t) contribute zero evidence (\emph{t}=0).
-#' - Combined statistics are computed via weighted averaging of within-dataset contrasts.
+#' - Datasets where either measurement yields a non-finite t-statistic or log Bayes factor are skipped
+#'   for that pair (reported when \code{verbose = TRUE}).
+#' - The result does not depend on the order of rows or measurements in \code{data}.
+#' - With complete overlap (every dataset contains both measurements), the result equals the
+#'   corresponding entry of \code{calibration_summary()$log_bayes_factor_diffs}.
 #'
-#' @seealso \code{\link{meta_bf_from_data}}, \code{\link{tstat2logbf}}, \code{\link{logbf2tstat}}
+#' @seealso \code{\link{meta_bf_from_data}}, \code{\link{tstat2logbf}}, \code{\link{compute_weights}}
 #'
 #' @examples
 #' # Example with synthetic data (see full package docs)
@@ -54,13 +60,23 @@ strict_meta_bf_from_data <- function(
   n_datasets_matrix<- matrix(0,  n_measurements, n_measurements, dimnames = list(measurements, measurements))
   n_samples_matrix <- matrix(0,  n_measurements, n_measurements, dimnames = list(measurements, measurements))
 
+  # Weighted combination of per-dataset t-statistics into a meta-analytic log BF against the
+  # null (identical to the combination step in meta_bf_from_data)
+  combine_logbf <- function(t_stats, sample_sizes, sum_squares) {
+    weights <- compute_weights(t_stats, sample_sizes, sum_squares)
+    combined_n <- sum(sample_sizes)
+    tstat2logbf(sum(weights * t_stats), combined_n, g = combined_n)
+  }
+
   for (i in seq_len(n_measurements - 1)) {
     for (j in (i + 1):n_measurements) {
 
       m1 <- measurements[i]
       m2 <- measurements[j]
 
-      t_stats <- sample_sizes <- sum_squares <- numeric(0)
+      # Per-dataset statistics of each measurement, restricted to datasets containing both
+      t1s <- n1s <- ss1s <- numeric(0)
+      t2s <- n2s <- ss2s <- numeric(0)
       datasets_with_both <- 0
       samples_with_both  <- 0
 
@@ -88,35 +104,24 @@ strict_meta_bf_from_data <- function(
         t2 <- stats2$t_statistic; n2 <- stats2$sample_size; ss2 <- stats2$sum_squares
         if (any(!is.finite(c(t1, t2, n1, n2)))) next
 
-        n_used <- min(n1, n2)
-
-        log_bf1 <- tstat2logbf(t1, n1, g = n1)
-        log_bf2 <- tstat2logbf(t2, n2, g = n2)
-
-        if (!is.finite(log_bf1) || !is.finite(log_bf2)) {
+        if (!is.finite(tstat2logbf(t1, n1, g = n1)) || !is.finite(tstat2logbf(t2, n2, g = n2))) {
           if (verbose)
             message(sprintf("Skipping dataset '%s' for pair (%s, %s): invalid log BFs.", ds, m1, m2))
           next
         }
 
-        # Log-BF contrast and mapping to t
-        log_contrast <- log_bf1 - log_bf2
-        t_contrast <- logbf2tstat(log_contrast, n_used, g = n_used)
-        if (!is.finite(t_contrast)) t_contrast <- 0
-
-        t_stats       <- c(t_stats, t_contrast)
-        sample_sizes  <- c(sample_sizes, n_used)
-        sum_squares   <- c(sum_squares, ss1 + ss2)
+        t1s <- c(t1s, t1); n1s <- c(n1s, n1); ss1s <- c(ss1s, ss1)
+        t2s <- c(t2s, t2); n2s <- c(n2s, n2); ss2s <- c(ss2s, ss2)
         datasets_with_both <- datasets_with_both + 1
-        samples_with_both  <- samples_with_both + n_used
+        samples_with_both  <- samples_with_both + min(n1, n2)
       }
 
       if (datasets_with_both == 0) next
 
-      weights <- compute_weights(t_stats, sample_sizes, sum_squares)
-      combined_t <- sum(weights * t_stats)
-      combined_n <- sum(sample_sizes)
-      meta_logbf <- tstat2logbf(combined_t, combined_n, g = combined_n)
+      # Meta-analytic log BF of each measurement against the null (as in meta_bf_from_data),
+      # computed on the shared datasets only. Since both are relative to the same null model,
+      # their difference is the log BF of m1 versus m2: log BF_12 = log BF_10 - log BF_20.
+      meta_logbf <- combine_logbf(t1s, n1s, ss1s) - combine_logbf(t2s, n2s, ss2s)
 
       log_bf_matrix[i, j]     <- meta_logbf
       log_bf_matrix[j, i]     <- -meta_logbf
