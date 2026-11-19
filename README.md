@@ -72,9 +72,9 @@ result <- calibration_summary(
   standard_scores_col = "standard_score"
 )
 
-# Main summary table (ordered by log BF)
+# Main summary table (ordered by natural-log BF)
 print(result$summary_table)
-# Matrix of pairwise log BF differences
+# Matrix of pairwise natural-log BF differences
 print(result$log_bayes_factor_diffs)
 # Short statement about the best measurement
 cat(result$best_measurement, "\n")

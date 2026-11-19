@@ -13,11 +13,25 @@ meta_bf_from_data(
   subject_id_col = NULL
 )
 }
+\arguments{
+\item{data}{A dataframe containing multiple datasets, measurement types, and measurement values.}
+
+\item{dataset_col}{A string specifying the column name that identifies datasets - if NULL, all data pertains to one dataset.}
+
+\item{measurement_name_col}{A string specifying the column name that identifies different measurements.}
+
+\item{standard_scores_col}{A string specifying the column name containing standard scores.}
+
+\item{measurement_values_col}{A string specifying the column name containing measurement values.}
+
+\item{subject_id_col}{A string specifying the column name containing subject IDs - can be NULL.
+If provided, datasets with repeated subjects are analysed within-subject (see \code{extract_stats()}).}
+}
 \value{
 A list with three elements:
 \describe{
 \item{meta_results}{Data frame with one row per measurement containing:
-\code{measurement}, \code{log_combined_bayes_factor},
+\code{measurement}, \code{log_combined_bayes_factor} (natural log),
 \code{retrodiction_score}, \code{sample_size}, and \code{combined_t_statistic}.}
 \item{subject_overlap}{Matrix of shared subjects between measurements, if applicable.}
 \item{weights}{List of per-dataset weight tables for each measurement.}
@@ -32,7 +46,7 @@ For each measurement:
 \itemize{
 \item Extracts per-dataset t-statistics and ancillary stats via \code{extract_stats()}.
 \item Combines t-statistics using \code{compute_weights()} to form a weighted t (\code{sum(weights * t_i)}).
-\item Computes the Bayes factor from that combined t using \code{tstat2bf()}.
+\item Computes the log Bayes factor (natural log) from that combined t using \code{tstat2logbf()}.
 \item Computes the \strong{meta-analytic retrodiction score} by converting each t to its
 corresponding correlation (\eqn{r_i = t_i / \sqrt{t_i^2 + \mathrm{df}_i}}),
 Fisher-z transforming each, weighting by their residual degrees of freedom
@@ -40,5 +54,5 @@ Fisher-z transforming each, weighting by their residual degrees of freedom
 }
 }
 \seealso{
-\code{\link{extract_stats}}, \code{\link{compute_weights}}, \code{\link{tstat2bf}}
+\code{\link{extract_stats}}, \code{\link{compute_weights}}, \code{\link{tstat2logbf}}
 }

@@ -24,8 +24,9 @@
 #'
 #' @return A list containing:
 #'   \describe{
-#'     \item{summary_table}{A dataframe summarizing results from Bayes Factor and effect size computations.}
-#'     \item{log_bayes_factor_diffs}{A matrix of Bayes Factor log-ratio differences between all measurements.}
+#'     \item{summary_table}{A dataframe summarizing results from Bayes Factor and effect size computations.
+#'         Log Bayes Factors are in natural log.}
+#'     \item{log_bayes_factor_diffs}{A matrix of Bayes Factor log-ratio differences (natural log) between all measurements.}
 #'     \item{best_measurement}{A descriptive summary of the best-performing measurement.}
 #'     \item{subject_overlap}{A matrix showing the percentage of shared subjects between measurement types,
 #'         based on combined dataset-subject identifiers. Returned only if subject_id_col is provided and multiple datasets exist.}
@@ -157,13 +158,13 @@ calibration_summary <- function(
   log_max_bf <- max(log_bayes_factors)
   best_measurement <- measurements[which.max(log_bayes_factors)]
   best_retrodiction <- measurements[which.max(summary_table$retrodiction_score)]
-  second_best <- sort(log_bayes_factors, decreasing = TRUE)[2]
-  margin <- log_max_bf - second_best
+  # second_best <- sort(log_bayes_factors, decreasing = TRUE)[2]
+  # margin <- log_max_bf - second_best
 
   best_statement <- paste(
-    "The highest log Bayes Factor is achieved by", best_measurement,
+    "The highest log Bayes Factor (natural log) is achieved by", best_measurement,
     "with a value of", round(log_max_bf, 2), ".",
-    "When comparing methods, consider the degree of subject overlap — greater overlap strengthens the validity of the comparison.",
+    "When comparing methods, consider the degree of subject overlap \u2014 greater overlap strengthens the validity of the comparison.",
     "The highest retrodiction score is observed for", best_retrodiction, ".",
     "If the top Bayes Factor and retrodiction score point to different methods, examine differences in sample sizes."
   )
