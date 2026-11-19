@@ -17,9 +17,14 @@ To install calibr from GitHub, use the following command in R:
 # Install necessary dependencies
 install.packages("devtools")  
 
-# Install from GitHub
+# Install the latest version from GitHub
 devtools::install_github("bachlab/calibr")
+
+# Or install a specific release (recommended for reproducibility, e.g. when citing calibr in a paper)
+devtools::install_github("bachlab/calibr@v0.1.0")
 ```
+
+Releases and their changes are listed at <https://github.com/bachlab/calibr/releases>.
 
 ## 📊  Use case: computing a calibration summary
 In this example, three datasets from different studies are analyzed in a between-subjects setting: the binary standard score (0/1) forms two groups. 
