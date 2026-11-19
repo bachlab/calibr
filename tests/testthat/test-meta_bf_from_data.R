@@ -1,20 +1,3 @@
-# Mock helper functions required for testing
-extract_stats <- function(standard_scores, measurement_values) {
-  return(list(
-    t_statistic = mean(standard_scores) / (sd(standard_scores) / sqrt(length(standard_scores))),
-    sample_size = length(standard_scores),
-    sum_squares = sum(standard_scores^2)
-  ))
-}
-
-compute_weights <- function(t_statistics, sample_sizes, sum_squares) {
-  return(sample_sizes / sum(sample_sizes))  # Simple weighting scheme
-}
-
-bayes_factor_from_t_statistic <- function(t_statistic, total_sample_size, g) {
-  return(exp(t_statistic^2 / (2 * g)))  # Approximate BF calculation
-}
-
 # Define a test dataset
 test_data <- data.frame(
   dataset_id = rep(1:3, each = 10),
@@ -64,10 +47,10 @@ test_that("meta_bf_from_data handles different numbers of datasets per measureme
   )
 
   expect_equal(nrow(result$meta_results), length(unique(imbalanced_data$measurement_name)))  # Should still match unique measurements
-  expect_true(all(result$combined_bayes_factor > 0))  # Ensure Bayes factors are valid numbers
+  expect_true(all(is.finite(result$meta_results$log_combined_bayes_factor)))  # Ensure log Bayes factors are valid numbers
 })
 
-test_that("meta_bf_from_data returns non-negative Bayes factors", {
+test_that("meta_bf_from_data returns finite log Bayes factors", {
   result <- meta_bf_from_data(
     data = test_data,
     dataset_col = "dataset_id",
@@ -76,5 +59,21 @@ test_that("meta_bf_from_data returns non-negative Bayes factors", {
     measurement_values_col = "measurement_values"
   )
 
-  expect_true(all(result$combined_bayes_factor >= 0))  # BF should not be negative
+  expect_true(all(is.finite(result$meta_results$log_combined_bayes_factor)))  # log BF must be a finite number
+})
+
+test_that("meta_bf_from_data log Bayes factor is in natural log (Eq. 5 of the combined t)", {
+  result <- meta_bf_from_data(
+    data = test_data,
+    dataset_col = "dataset_id",
+    measurement_name_col = "measurement_name",
+    standard_scores_col = "standard_scores",
+    measurement_values_col = "measurement_values"
+  )
+  w <- result$weights$A
+  combined_t <- sum(w$weight * w$t_statistic)
+  N <- sum(w$sample_size)
+  raw_bf <- (1 + N)^((N - 2) / 2) * (1 + N / (combined_t^2 / (N - 2) + 1))^(-(N - 1) / 2)
+  expect_equal(result$meta_results$log_combined_bayes_factor[result$meta_results$measurement == "A"],
+               log(raw_bf), tolerance = 1e-8)
 })

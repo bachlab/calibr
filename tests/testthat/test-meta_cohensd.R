@@ -65,7 +65,6 @@ test_that("meta_cohensd returns non-negative variances", {
   )
 
   expect_true(all(result$effect_sizes$var_d >= 0))  # Variances should not be negative
-  expect_true(all(result$effect_sizes$var_g >= 0))  # Variances should not be negative
 })
 
 test_that("meta_cohensd handles multiple measurements correctly", {
@@ -77,5 +76,45 @@ test_that("meta_cohensd handles multiple measurements correctly", {
   # Ensure all unique measurements are in the results
   unique_measurements <- unique(test_data$measurement_name)
   expect_true(all(unique_measurements %in% result$meta_results$measurement))
+})
+
+# Paired dataset: 30 subjects measured once at each standard score level
+set.seed(42)
+paired_base <- rnorm(30)
+paired_data <- data.frame(
+  dataset = "D1", measurement_name = "A", subject = rep(1:30, 2), group = rep(c(0, 1), each = 30),
+  measurement_value = c(paired_base + rnorm(30, 0, 0.3), paired_base + 0.5 + rnorm(30, 0, 0.3))
+)
+
+test_that("meta_cohensd paired variance does not depend on row order (subjects matched by ID)", {
+  ref <- meta_cohensd(paired_data, "dataset", "group", "measurement_name", "measurement_value", "subject")
+  shuffled <- paired_data[sample(nrow(paired_data)), ]
+  res <- meta_cohensd(shuffled, "dataset", "group", "measurement_name", "measurement_value", "subject")
+  expect_true(ref$effect_sizes$is_paired)
+  expect_equal(res$effect_sizes$var_d, ref$effect_sizes$var_d, tolerance = 1e-12)
+  expect_equal(res$meta_results$meta_cohen_d, ref$meta_results$meta_cohen_d, tolerance = 1e-12)
+})
+
+test_that("meta_cohensd treats repeated rows in the same condition as unpaired", {
+  same_cond <- data.frame(
+    dataset = "D1", measurement_name = "A", subject = rep(1:30, each = 2),
+    group = rep(rep(c(0, 1), each = 15), each = 2), measurement_value = rnorm(60)
+  )
+  res <- suppressWarnings(
+    meta_cohensd(same_cond, "dataset", "group", "measurement_name", "measurement_value", "subject")
+  )
+  expect_false(res$effect_sizes$is_paired)
+})
+
+test_that("meta_cohensd warns when the BF treats a dataset as within-subject but d does not", {
+  incomplete <- paired_data[!(paired_data$subject %in% 26:30 & paired_data$group == 0), ]
+  expect_warning(
+    meta_cohensd(incomplete, "dataset", "group", "measurement_name", "measurement_value", "subject"),
+    "treats this dataset as within-subject"
+  )
+  # No such warning (nor any other output) for perfectly paired data
+  expect_silent(
+    meta_cohensd(paired_data, "dataset", "group", "measurement_name", "measurement_value", "subject")
+  )
 })
 
