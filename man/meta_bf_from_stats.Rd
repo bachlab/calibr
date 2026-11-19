@@ -2,7 +2,7 @@
 % Please edit documentation in R/meta_bf_from_stats.R
 \name{meta_bf_from_stats}
 \alias{meta_bf_from_stats}
-\title{Compute Meta-Analytic Bayes Factor From Stats}
+\title{Compute Meta-Analytic Log Bayes Factor From Stats}
 \usage{
 meta_bf_from_stats(
   n_datasets,
@@ -10,24 +10,32 @@ meta_bf_from_stats(
   sample_sizes,
   sum_squares = rep(NA, n_datasets),
   bayes_factors = rep(NA, n_datasets),
+  effect_directions = rep(NA, n_datasets),
   measurement_name = "overall"
 )
 }
 \arguments{
 \item{n_datasets}{Integer; number of datasets.}
 
-\item{t_statistics}{Numeric vector of per-dataset \(t\)-statistics. Defaults to \code{rep(NA, n_datasets)}.
-Where an entry is \code{NA}, the corresponding \code{bayes_factors} value must be provided and will be
-transformed to a \(t\)-statistic.}
+\item{t_statistics}{Numeric vector of per-dataset (signed) \(t\)-statistics. Defaults to
+\code{rep(NA, n_datasets)}. Where an entry is \code{NA}, the corresponding \code{bayes_factors}
+and \code{effect_directions} values must be provided.}
 
 \item{sample_sizes}{Numeric vector of per-dataset sample sizes (\(n\)).}
 
-\item{sum_squares}{Numeric vector of per-dataset sums of squares (or analogous quantity used by your weighting scheme).
-Defaults to \code{rep(NA, n_datasets)} if not used by \code{compute_weights()}.}
+\item{sum_squares}{Numeric vector of per-dataset sums of squares used by \code{compute_weights()}.
+Defaults to \code{rep(NA, n_datasets)}; if any entry is \code{NA}, weights are based on
+sample sizes only.}
 
-\item{bayes_factors}{Numeric vector of per-dataset Bayes Factors. Defaults to \code{rep(NA, n_datasets)}.
-Ignored where \code{t_statistics} is non-missing; otherwise each BF is converted to a \(t\)-statistic via
-\code{bf2tstat(bf, n, g = n)}.}
+\item{bayes_factors}{Numeric vector of per-dataset Bayes Factors \eqn{BF_{10}} against the null
+model, on the raw (not log) scale and > 0. Defaults to \code{rep(NA, n_datasets)}.
+Ignored where \code{t_statistics} is non-missing; otherwise each BF is converted to the
+magnitude of a \(t\)-statistic via \code{logbf2tstat(log(bf), n, g = n)}.}
+
+\item{effect_directions}{Numeric vector of effect directions (\code{1} for positive, \code{-1}
+for negative). Defaults to \code{rep(NA, n_datasets)}. Required wherever a \(t\)-statistic is
+derived from a Bayes Factor, otherwise an error is thrown; ignored where \code{t_statistics}
+is supplied (the sign of the \(t\)-statistic is used).}
 
 \item{measurement_name}{Optional single string used to label the output row and the weights list name.
 Defaults to \code{"overall"}.}
@@ -36,34 +44,39 @@ Defaults to \code{"overall"}.}
 A list with elements:
 \describe{
 \item{meta_results}{Data frame with one row and columns:
-\code{measurement}, \code{combined_bayes_factor}, \code{log_combined_bayes_factor},
+\code{measurement}, \code{log_combined_bayes_factor} (natural log),
 \code{retrodiction_score}, \code{sample_size}, \code{combined_t_statistic}.}
 \item{subject_overlap}{Always \code{NULL}.}
 \item{weights}{Named list of length 1 (name = \code{measurement_name}) containing a per-dataset
-data frame with columns \code{dataset}, \code{weight}, \code{t_statistic}, \code{sample_size}, \code{sum_squares}.}
+data frame with columns \code{dataset}, \code{weight}, \code{t_statistic}, \code{sample_size},
+\code{df}, \code{r_i}, \code{sum_squares}.}
 }
 }
 \description{
-This function computes a \strong{meta-analytic Bayes Factor (BF)} by combining test statistics
-from multiple datasets using a weighted approach. You may supply per-dataset
-\(t\)-statistics directly, or provide Bayes Factors to be transformed into
-\(t\)-statistics where needed. The combined statistic is then converted into a Bayes Factor.
+This function computes a \strong{meta-analytic log Bayes Factor} (natural log) by combining
+test statistics from multiple datasets using the weighted approach of
+Nikolakopoulos & Ntzoufras (2021). You may supply per-dataset \(t\)-statistics directly,
+or provide Bayes Factors to be transformed into \(t\)-statistics where needed. Since
+Bayes Factors carry no information on the sign of the effect, the effect direction must
+then be supplied via \code{effect_directions}. The combined statistic is then converted
+into a log Bayes Factor.
 }
 \details{
 To keep outputs uniform with \code{meta_bf_from_data}, the return value includes:
 \itemize{
 \item \code{meta_results}: a 1-row data frame with columns
-\code{measurement}, \code{combined_bayes_factor}, \code{log_combined_bayes_factor},
-\code{retrodiction_score} (Pearson \(r\) implied by the combined \(t\)),
-\code{sample_size} (sum of per-dataset \(n\)), and \code{combined_t_statistic}.
+\code{measurement}, \code{log_combined_bayes_factor} (natural log),
+\code{retrodiction_score}, \code{sample_size} (sum of per-dataset \(n\)),
+and \code{combined_t_statistic}.
 \item \code{subject_overlap}: always \code{NULL} (not applicable when only stats are provided).
 \item \code{weights}: a named list (single element, named by \code{measurement_name}) containing
 a per-dataset table with columns \code{dataset}, \code{weight}, \code{t_statistic},
-\code{sample_size}, \code{sum_squares}.
+\code{sample_size}, \code{df}, \code{r_i}, \code{sum_squares}.
 }
 
-This function relies on helper routines available in your environment:
-\code{compute_weights()}, \code{tstat2bf()}, \code{bf2tstat()}, and \code{tstat2rscore()}.
+The \code{retrodiction_score} is computed exactly as in \code{meta_bf_from_data()}: each
+\(t\)-statistic is converted to a correlation, Fisher-z transformed, averaged with weights
+equal to the residual degrees of freedom minus one, and back-transformed.
 }
 \examples{
 # Example 1: Compute from t-statistics
@@ -81,11 +94,17 @@ out1 <- meta_bf_from_stats(
 out1$meta_results
 out1$weights$A
 
-# Example 2: Compute using Bayes Factors (converted to t where t is NA)
+# Example 2: Compute using Bayes Factors (converted to t where t is NA);
+# the effect directions must be supplied, since Bayes Factors carry no sign
 bayes_factors <- c(10, 5, 8)
 out2 <- meta_bf_from_stats(n_datasets, t_statistics = c(NA, NA, NA),
                            sample_sizes = sample_sizes, sum_squares = sum_squares,
-                           bayes_factors = bayes_factors, measurement_name = "overall")
+                           bayes_factors = bayes_factors, effect_directions = c(1, 1, 1),
+                           measurement_name = "overall")
 out2$meta_results
 
+}
+\seealso{
+\code{\link{meta_bf_from_data}}, \code{\link{compute_weights}},
+\code{\link{tstat2logbf}}, \code{\link{logbf2tstat}}
 }
