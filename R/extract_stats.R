@@ -34,7 +34,7 @@
 #'   of unique subjects. This t is identical to that from \code{lm(measurement ~ score + subject)}.
 #'
 #' The resulting \code{t_statistic} and \code{sample_size} are suitable for direct use in
-#' \code{tstat2bf()} and then \code{meta_bf_from_data()}.
+#' \code{tstat2logbf()} and then \code{meta_bf_from_data()}.
 #'
 #' @examples
 #' # Example 1: Unpaired design (between subjects)
@@ -53,7 +53,7 @@
 #' )
 #' extract_stats(df2$score, df2$measurement, df2$subject)
 #'
-#' @seealso \code{\link{tstat2bf}}, \code{\link{meta_bf_from_data}}
+#' @seealso \code{\link{tstat2logbf}}, \code{\link{meta_bf_from_data}}
 #' @export
 extract_stats <- function(standard_scores, measurement_values, subject_ids = NULL) {
   # --- checks
@@ -88,8 +88,16 @@ extract_stats <- function(standard_scores, measurement_values, subject_ids = NUL
   } else {
     # ---------------- Repeated/paired: partial correlation via FWL ----------------
     # Residualize BOTH meas and score on subject (within-subject centering)
-    meas_ws  <- df$meas  - ave(df$meas,  df$subj, FUN = mean)
-    score_ws <- df$score - ave(df$score, df$subj, FUN = mean)
+    meas_ws  <- df$meas  - stats::ave(df$meas,  df$subj, FUN = mean)
+    score_ws <- df$score - stats::ave(df$score, df$subj, FUN = mean)
+
+    # The standard score must vary within at least one subject, otherwise removing subject
+    # effects leaves no information on the score (e.g. between-subject design with repeated trials)
+    if (all(abs(score_ws) <= 1e-12 * max(1, abs(df$score)))) {
+      stop(paste0("No subject has more than one standard score level, so a within-subject ",
+                  "analysis is not possible (e.g. a between-subject design with repeated trials). ",
+                  "Average trials per subject or omit subject_id_col."))
+    }
 
     # If every subject has both 0 and 1 exactly once, this equals the paired t case.
     # More generally, it matches lm(meas ~ score + subj) by FWL.
